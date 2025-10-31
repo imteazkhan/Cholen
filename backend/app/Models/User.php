@@ -18,7 +18,22 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-   protected $guarded=[];
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'phone',
+        'role',
+        'first_name',
+        'last_name',
+        'driver_license',
+        'driver_status',
+        'permissions',
+        'bio',
+        'profile_image',
+        'is_active',
+        'last_login_at'
+    ];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -26,10 +41,9 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
-        // 'password',
+        'password',
         'login_code',
         'remember_token'
-       
     ];
 
     public function routeNotificationForTwilio()
@@ -55,11 +69,55 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    // protected function casts(): array
-    // {
-    //     return [
-    //         'email_verified_at' => 'datetime',
-    //         'password' => 'hashed',
-    //     ];
-    // }
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'permissions' => 'array',
+            'is_active' => 'boolean',
+            'last_login_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Role-based helper methods
+     */
+    public function isUser(): bool
+    {
+        return $this->role === 'user';
+    }
+
+    public function isDriver(): bool
+    {
+        return $this->role === 'driver';
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isApprovedDriver(): bool
+    {
+        return $this->isDriver() && $this->driver_status === 'approved';
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return trim($this->first_name . ' ' . $this->last_name) ?: $this->name;
+    }
+
+    /**
+     * Scope for filtering by role
+     */
+    public function scopeByRole($query, $role)
+    {
+        return $query->where('role', $role);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }
