@@ -71,6 +71,9 @@ Route::middleware('auth:sanctum')->prefix('rides')->group(function () {
     // Common routes
     Route::put('/{ride}/status', [App\Http\Controllers\Api\RideController::class, 'updateRideStatus']);
     Route::delete('/{ride}/cancel', [App\Http\Controllers\Api\RideController::class, 'cancelRide']);
+    
+    // Payment routes
+    Route::post('/{ride}/payment', [App\Http\Controllers\Api\RideController::class, 'processPayment']);
 });
 
 // Legacy Phone-based Authentication (for mobile app)

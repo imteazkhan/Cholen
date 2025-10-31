@@ -82,6 +82,7 @@ export const rideAPI = {
   // Common methods
   updateRideStatus: (rideId, status) => api.put(`/rides/${rideId}/status`, { status }),
   cancelRide: (rideId) => api.delete(`/rides/${rideId}/cancel`),
+  processPayment: (rideId, paymentData) => api.post(`/rides/${rideId}/payment`, paymentData),
 }
 
 // General API methods

@@ -38,7 +38,9 @@ class Ride extends Model
         'driver_arrived_at',
         'started_at',
         'completed_at',
-        'cancelled_at'
+        'cancelled_at',
+        'payment_method',
+        'payment_status'
     ];
 
     protected $casts = [

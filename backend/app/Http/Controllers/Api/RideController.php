@@ -345,6 +345,99 @@ class RideController extends Controller
     }
 
     /**
+     * Process payment for a completed ride
+     */
+    public function processPayment(Request $request, $rideId)
+    {
+        $validator = Validator::make($request->all(), [
+            'payment_method' => 'required|in:cash,card',
+            'card_number' => 'required_if:payment_method,card',
+            'expiry_date' => 'required_if:payment_method,card',
+            'cvv' => 'required_if:payment_method,card',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid payment data',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $ride = Ride::find($rideId);
+
+        if (!$ride) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride not found'
+            ], 404);
+        }
+
+        // Check if user owns this ride or is the assigned driver
+        \Log::info('Payment processing attempt', [
+            'user_id' => $request->user()->id,
+            'ride_user_id' => $ride->user_id,
+            'ride_driver_id' => $ride->driver_id,
+            'ride_status' => $ride->status
+        ]);
+        
+        if ($ride->user_id !== $request->user()->id && $ride->driver_id !== $request->user()->id) {
+            \Log::warning('Payment unauthorized', [
+                'user_id' => $request->user()->id,
+                'ride_user_id' => $ride->user_id,
+                'ride_driver_id' => $ride->driver_id
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        // Check if ride is in a state that allows completion
+        // Allow completion from driver_arrived or in_progress states
+        \Log::info('Ride status check', [
+            'ride_id' => $rideId,
+            'current_status' => $ride->status,
+            'allowed_statuses' => ['driver_arrived', 'in_progress']
+        ]);
+        
+        if (!in_array($ride->status, ['driver_arrived', 'in_progress'])) {
+            \Log::warning('Ride status not allowed for payment', [
+                'ride_id' => $rideId,
+                'current_status' => $ride->status
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride must be in driver arrived or in progress state to process payment'
+            ], 422);
+        }
+
+        try {
+            // In a real implementation, you would integrate with a payment gateway here
+            // For now, we'll just simulate a successful payment
+            
+            // Update payment information
+            $ride->update([
+                'payment_method' => $request->payment_method,
+                'payment_status' => 'completed'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment processed successfully!',
+                'ride' => $this->formatRideForDriver($ride->fresh())
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process payment',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Cancel ride
      */
     public function cancelRide(Request $request, $rideId)

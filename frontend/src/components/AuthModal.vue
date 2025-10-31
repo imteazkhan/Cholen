@@ -84,9 +84,9 @@
             <!-- Demo accounts info -->
             <div class="mt-4 p-3 bg-light rounded">
               <h6 class="text-muted mb-2">Demo Accounts:</h6>
-              <small class="text-muted d-block">User: user@demo.com / password123</small>
-              <small class="text-muted d-block">Driver: driver@demo.com / password123</small>
-              <small class="text-muted d-block">Admin: admin@demo.com / password123 (Code: admin123)</small>
+              <small class="text-muted d-block">User: user@gmail.com / 12345678</small>
+              <small class="text-muted d-block">Driver: driver@gmail.com / 12345678</small>
+              <small class="text-muted d-block">Admin: admin@gmail.com / 12345678 (Code: admin123)</small>
             </div>
           </form>
           
