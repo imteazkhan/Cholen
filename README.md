@@ -1,2 +1,2 @@
-# GoHere
-GoHere is a ride shareing app.
+# Cholen
+Cholen is a ride shareing app.
