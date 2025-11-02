@@ -85,6 +85,12 @@ export const rideAPI = {
   processPayment: (rideId, paymentData) => api.post(`/rides/${rideId}/payment`, paymentData),
 }
 
+// Payment API methods
+export const paymentAPI = {
+  initializePayment: (paymentData) => api.post('/payment/initialize', paymentData),
+  getPaymentStatus: (transactionId) => api.get(`/payment/status/${transactionId}`)
+}
+
 // General API methods
 export const generalAPI = {
   // Test API connection

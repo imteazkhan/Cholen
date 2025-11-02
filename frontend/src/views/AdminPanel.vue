@@ -31,80 +31,47 @@
           </div>
         </div>
 
-        <!-- Admin Capabilities Overview -->
+        <!-- Dynamic Admin Capabilities Overview -->
         <div class="row g-4 mb-4">
-          <div class="col-md-3">
-            <div class="admin-capability-card" @click="activeTab = 'users'">
-              <div class="capability-icon bg-primary">
-                <i class="bi bi-people"></i>
+          <div class="col-md-3" v-for="capability in adminCapabilities" :key="capability.id">
+            <div class="admin-capability-card"
+              :class="{ 'capability-active': activeTab === capability.tabId, 'capability-loading': capability.loading }"
+              @click="switchTab(capability.tabId)">
+              <div class="capability-icon" :class="capability.iconClass">
+                <i :class="capability.icon"></i>
+                <div v-if="capability.loading" class="capability-spinner">
+                  <div class="spinner-border spinner-border-sm text-white"></div>
+                </div>
               </div>
               <div class="capability-content">
-                <h5>Manage Users & Drivers</h5>
-                <p class="text-muted">Add, edit, approve, and manage all platform users</p>
+                <h5>{{ capability.title }}</h5>
+                <p class="text-muted">{{ capability.description }}</p>
                 <div class="capability-stats">
-                  <span class="badge bg-primary">{{ users.length }} Users</span>
-                  <span class="badge bg-warning">{{ pendingDrivers.length }} Pending</span>
+                  <div class="stats-row">
+                    <span v-for="stat in capability.primaryStats" :key="stat.label" class="badge"
+                      :class="stat.badgeClass">
+                      <i v-if="stat.icon" :class="stat.icon" class="me-1"></i>
+                      {{ stat.value }} {{ stat.label }}
+                    </span>
+                  </div>
+                  <div class="stats-row mt-1" v-if="capability.secondaryStats.length > 0">
+                    <small v-for="stat in capability.secondaryStats" :key="stat.label" class="text-muted me-2">
+                      {{ stat.label }}: <strong>{{ stat.value }}</strong>
+                    </small>
+                  </div>
+                </div>
+                <div class="capability-trend" v-if="capability.trend">
+                  <small :class="capability.trend.class">
+                    <i :class="capability.trend.icon" class="me-1"></i>
+                    {{ capability.trend.text }}
+                  </small>
                 </div>
               </div>
               <div class="capability-arrow">
                 <i class="bi bi-arrow-right"></i>
               </div>
-            </div>
-          </div>
-
-          <div class="col-md-3">
-            <div class="admin-capability-card" @click="activeTab = 'analytics'">
-              <div class="capability-icon bg-success">
-                <i class="bi bi-graph-up"></i>
-              </div>
-              <div class="capability-content">
-                <h5>View System Analytics</h5>
-                <p class="text-muted">Monitor performance, revenue, and user activity</p>
-                <div class="capability-stats">
-                  <span class="badge bg-success">{{ analytics.rides?.total || 0 }} Rides</span>
-                  <span class="badge bg-info">BDT {{ analytics.revenue?.total || 0 }}</span>
-                </div>
-              </div>
-              <div class="capability-arrow">
-                <i class="bi bi-arrow-right"></i>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-md-3">
-            <div class="admin-capability-card" @click="activeTab = 'rides'">
-              <div class="capability-icon bg-info">
-                <i class="bi bi-car-front"></i>
-              </div>
-              <div class="capability-content">
-                <h5>Monitor Ride Requests</h5>
-                <p class="text-muted">Track all rides, manage statuses, and resolve issues</p>
-                <div class="capability-stats">
-                  <span class="badge bg-warning">{{ pendingRides.length }} Pending</span>
-                  <span class="badge bg-info">{{ activeRides.length }} Active</span>
-                </div>
-              </div>
-              <div class="capability-arrow">
-                <i class="bi bi-arrow-right"></i>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-md-3">
-            <div class="admin-capability-card" @click="activeTab = 'settings'">
-              <div class="capability-icon bg-warning">
-                <i class="bi bi-gear"></i>
-              </div>
-              <div class="capability-content">
-                <h5>Configure System Settings</h5>
-                <p class="text-muted">Adjust pricing, policies, and operational parameters</p>
-                <div class="capability-stats">
-                  <span class="badge bg-warning">BDT {{ settings.base_fare || 0 }} Base</span>
-                  <span class="badge bg-secondary">{{ settings.driver_commission || 0 }}% Commission</span>
-                </div>
-              </div>
-              <div class="capability-arrow">
-                <i class="bi bi-arrow-right"></i>
+              <div v-if="capability.alert" class="capability-alert" :class="capability.alert.class">
+                <i :class="capability.alert.icon"></i>
               </div>
             </div>
           </div>
@@ -245,25 +212,29 @@
               <!-- User Statistics -->
               <div class="row g-3 mb-4">
                 <div class="col-md-3">
-                  <div class="stat-card border border-success text-success bg-white  rounded-3 p-4 d-flex flex-column justify-content-center align-items-center">
+                  <div
+                    class="stat-card border border-success text-success bg-white  rounded-3 p-4 d-flex flex-column justify-content-center align-items-center">
                     <div class="stat-number">{{ users.length }}</div>
                     <div class="stat-label">Total Users</div>
                   </div>
                 </div>
                 <div class="col-md-3">
-                  <div class="stat-card border border-info text-info bg-white  rounded-3 p-4 d-flex flex-column justify-content-center align-items-center">
+                  <div
+                    class="stat-card border border-info text-info bg-white  rounded-3 p-4 d-flex flex-column justify-content-center align-items-center">
                     <div class="stat-number">{{users.filter(u => u.is_active).length}}</div>
                     <div class="stat-label">Active Users</div>
                   </div>
                 </div>
                 <div class="col-md-3">
-                  <div class="stat-card border border-warning text-warning bg-white  rounded-3 p-4 d-flex flex-column justify-content-center align-items-center">
+                  <div
+                    class="stat-card border border-warning text-warning bg-white  rounded-3 p-4 d-flex flex-column justify-content-center align-items-center">
                     <div class="stat-number">{{users.filter(u => u.role === 'user').length}}</div>
                     <div class="stat-label">Regular Users</div>
                   </div>
                 </div>
                 <div class="col-md-3">
-                  <div class="stat-card border border-primary text-primary bg-white  rounded-3 p-4 d-flex flex-column justify-content-center align-items-center">
+                  <div
+                    class="stat-card border border-primary text-primary bg-white  rounded-3 p-4 d-flex flex-column justify-content-center align-items-center">
                     <div class="stat-number">{{users.filter(u => u.role === 'admin').length}}</div>
                     <div class="stat-label">Administrators</div>
                   </div>
@@ -417,6 +388,10 @@
                             </button>
                             <button class="btn btn-outline-info" @click="showUserDetails(user)" title="View Details">
                               <i class="bi bi-eye"></i>
+                            </button>
+                            <button v-if="user.role !== 'admin'" class="btn btn-outline-warning"
+                              @click="promoteToAdmin(user)" title="Promote to Admin">
+                              <i class="bi bi-shield-check"></i>
                             </button>
                             <button class="btn btn-outline-danger" @click="deleteUser(user.id)"
                               :disabled="user.role === 'admin'" title="Delete User">
@@ -1706,6 +1681,188 @@ const visibleUserPages = computed(() => {
   return range.filter((item, index, arr) => arr.indexOf(item) === index)
 })
 
+// Dynamic Admin Capabilities computed property
+const adminCapabilities = computed(() => [
+  {
+    id: 'users-drivers',
+    tabId: 'users',
+    title: 'User & Driver Management',
+    description: 'Manage all platform users, approve drivers, and handle registrations',
+    icon: 'bi bi-people',
+    iconClass: 'bg-primary',
+    loading: loadingUsers.value || loadingDrivers.value,
+    primaryStats: [
+      {
+        label: 'Total Users',
+        value: users.value.filter(u => u.role === 'user').length,
+        badgeClass: 'bg-primary',
+        icon: 'bi bi-person'
+      },
+      {
+        label: 'Drivers',
+        value: drivers.value.length,
+        badgeClass: 'bg-info',
+        icon: 'bi bi-car-front'
+      }
+    ],
+    secondaryStats: [
+      {
+        label: 'Pending Approvals',
+        value: pendingDrivers.value.length
+      },
+      {
+        label: 'Active Users',
+        value: users.value.filter(u => u.is_active).length
+      }
+    ],
+    trend: pendingDrivers.value.length > 0 ? {
+      text: `${pendingDrivers.value.length} drivers need approval`,
+      class: 'text-warning',
+      icon: 'bi bi-exclamation-triangle'
+    } : {
+      text: 'All drivers approved',
+      class: 'text-success',
+      icon: 'bi bi-check-circle'
+    },
+    alert: pendingDrivers.value.length > 5 ? {
+      class: 'alert-warning',
+      icon: 'bi bi-exclamation-triangle'
+    } : null
+  },
+  {
+    id: 'analytics',
+    tabId: 'analytics',
+    title: 'System Analytics',
+    description: 'Monitor platform performance, revenue, and user engagement metrics',
+    icon: 'bi bi-graph-up',
+    iconClass: 'bg-success',
+    loading: loadingAnalytics.value,
+    primaryStats: [
+      {
+        label: 'Total Revenue',
+        value: `BDT ${analytics.value.revenue?.total || 0}`,
+        badgeClass: 'bg-success',
+        icon: 'bi bi-currency-dollar'
+      },
+      {
+        label: 'Rides',
+        value: analytics.value.rides?.total || rides.value.length,
+        badgeClass: 'bg-info',
+        icon: 'bi bi-car-front'
+      }
+    ],
+    secondaryStats: [
+      {
+        label: 'Today Revenue',
+        value: `BDT ${analytics.value.revenue?.today || 0}`
+      },
+      {
+        label: 'Completion Rate',
+        value: `${Math.round(((analytics.value.rides?.completed || 0) / Math.max(analytics.value.rides?.total || 1, 1)) * 100)}%`
+      }
+    ],
+    trend: {
+      text: `${analytics.value.rides?.today || 0} rides today`,
+      class: 'text-info',
+      icon: 'bi bi-arrow-up'
+    },
+    alert: null
+  },
+  {
+    id: 'rides',
+    tabId: 'rides',
+    title: 'Ride Monitoring',
+    description: 'Track all ride requests, manage statuses, and resolve customer issues',
+    icon: 'bi bi-car-front',
+    iconClass: 'bg-info',
+    loading: loadingRides.value,
+    primaryStats: [
+      {
+        label: 'Active Rides',
+        value: activeRides.value.length,
+        badgeClass: 'bg-info',
+        icon: 'bi bi-play-circle'
+      },
+      {
+        label: 'Pending',
+        value: pendingRides.value.length,
+        badgeClass: 'bg-warning text-dark',
+        icon: 'bi bi-clock'
+      }
+    ],
+    secondaryStats: [
+      {
+        label: 'Completed Today',
+        value: rides.value.filter(r => r.status === 'completed' &&
+          new Date(r.created_at).toDateString() === new Date().toDateString()).length
+      },
+      {
+        label: 'Total Rides',
+        value: rides.value.length
+      }
+    ],
+    trend: pendingRides.value.length > 0 ? {
+      text: `${pendingRides.value.length} rides awaiting drivers`,
+      class: 'text-warning',
+      icon: 'bi bi-clock'
+    } : {
+      text: 'All rides assigned',
+      class: 'text-success',
+      icon: 'bi bi-check-circle'
+    },
+    alert: pendingRides.value.length > 10 ? {
+      class: 'alert-danger',
+      icon: 'bi bi-exclamation-triangle'
+    } : null
+  },
+  {
+    id: 'settings',
+    tabId: 'settings',
+    title: 'System Configuration',
+    description: 'Configure pricing, operational settings, and platform policies',
+    icon: 'bi bi-gear',
+    iconClass: settings.value.maintenance_mode ? 'bg-danger' : 'bg-warning',
+    loading: loadingSettings.value || savingSettings.value,
+    primaryStats: [
+      {
+        label: 'Base Fare',
+        value: `BDT ${settings.value.base_fare || 0}`,
+        badgeClass: 'bg-warning text-dark',
+        icon: 'bi bi-currency-dollar'
+      },
+      {
+        label: 'Commission',
+        value: `${settings.value.driver_commission || 0}%`,
+        badgeClass: 'bg-secondary',
+        icon: 'bi bi-percent'
+      }
+    ],
+    secondaryStats: [
+      {
+        label: 'Per KM Rate',
+        value: `BDT ${settings.value.per_km_rate || 0}`
+      },
+      {
+        label: 'Max Distance',
+        value: `${settings.value.max_ride_distance || 0} KM`
+      }
+    ],
+    trend: settings.value.maintenance_mode ? {
+      text: 'System in maintenance mode',
+      class: 'text-danger',
+      icon: 'bi bi-tools'
+    } : {
+      text: 'System operational',
+      class: 'text-success',
+      icon: 'bi bi-check-circle'
+    },
+    alert: settings.value.maintenance_mode ? {
+      class: 'alert-danger',
+      icon: 'bi bi-exclamation-triangle'
+    } : null
+  }
+])
+
 
 
 // Enhanced Users helper functions
@@ -2057,6 +2214,37 @@ const deleteUser = async (userId) => {
 const editUser = (user) => {
   // TODO: Implement user editing modal
   appContext.config.globalProperties.$toast?.info('User editing feature coming soon!')
+}
+
+const promoteToAdmin = async (user) => {
+  const confirmMessage = `Are you sure you want to promote ${user.first_name} ${user.last_name} to Admin?\n\nThis will give them full administrative access to the platform.`
+
+  if (!confirm(confirmMessage)) return
+
+  try {
+    // Update user role to admin
+    const response = await authAPI.updateUser(user.id, { role: 'admin' })
+
+    if (response.data.success) {
+      // Update local user data
+      const userIndex = users.value.findIndex(u => u.id === user.id)
+      if (userIndex !== -1) {
+        users.value[userIndex].role = 'admin'
+      }
+
+      appContext.config.globalProperties.$toast?.success(
+        `${user.first_name} ${user.last_name} has been promoted to Admin successfully!`
+      )
+
+      // Refresh analytics to update counts
+      loadAnalytics()
+    } else {
+      throw new Error(response.data.message || 'Failed to promote user')
+    }
+  } catch (error) {
+    console.error('Error promoting user to admin:', error)
+    appContext.config.globalProperties.$toast?.error('Failed to promote user to admin')
+  }
 }
 
 const editDriver = (driver) => {
@@ -2561,7 +2749,7 @@ onMounted(() => {
   border-top: 1px solid #dee2e6;
 }
 
-/* Admin Capability Cards */
+/* Enhanced Admin Capability Cards */
 .admin-capability-card {
   background: white;
   border: 1px solid #dee2e6;
@@ -2573,12 +2761,30 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
+  position: relative;
+  overflow: hidden;
 }
 
 .admin-capability-card:hover {
   border-color: var(--bs-primary);
   box-shadow: 0 0.5rem 1rem rgba(0, 123, 255, 0.15);
   transform: translateY(-2px);
+}
+
+.admin-capability-card.capability-active {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 123, 255, 0.25);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+}
+
+.admin-capability-card.capability-loading {
+  opacity: 0.8;
+}
+
+.capability-spinner {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
 }
 
 .capability-icon {
@@ -2618,6 +2824,47 @@ onMounted(() => {
 .capability-stats .badge {
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+.stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.capability-trend {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f3f4;
+}
+
+.capability-alert {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: white;
+}
+
+.capability-alert.alert-warning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.capability-alert.alert-danger {
+  background-color: #dc3545;
+}
+
+.capability-alert.alert-info {
+  background-color: #0dcaf0;
+  color: #212529;
 }
 
 .capability-arrow {

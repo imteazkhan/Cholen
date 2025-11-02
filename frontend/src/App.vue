@@ -10,13 +10,15 @@
 </template>
 
 <script setup>
-import { ref, provide } from 'vue'
+import { ref, provide, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from './stores/auth'
 import Header from './components/header.vue'
 import Footer from './components/Footer.vue'
 import AuthModal from './components/AuthModal.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const authModal = ref(null)
 
 const showAuthModal = (isLogin = true) => {
@@ -37,6 +39,39 @@ const onAuthSuccess = (authData) => {
     router.push('/dashboard')
   }
 }
+
+// Global keyboard shortcuts
+const handleKeyboardShortcuts = (event) => {
+  // Ctrl+Shift+L for quick logout
+  if (event.ctrlKey && event.shiftKey && event.key === 'L') {
+    event.preventDefault()
+    if (authStore.isAuthenticated) {
+      handleQuickLogout()
+    }
+  }
+}
+
+const handleQuickLogout = async () => {
+  if (confirm('Are you sure you want to sign out?')) {
+    try {
+      await authStore.logoutAndRedirect(router)
+    } catch (error) {
+      console.error('Quick logout error:', error)
+      // Fallback
+      window.location.href = '/'
+      setTimeout(() => window.location.reload(), 500)
+    }
+  }
+}
+
+// Setup keyboard shortcuts
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyboardShortcuts)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyboardShortcuts)
+})
 </script>
 
 <style>

@@ -310,7 +310,7 @@ class TestAdminController extends Controller
         try {
             $user = User::findOrFail($id);
             $user->update($request->only([
-                'first_name', 'last_name', 'email', 'phone', 'is_active'
+                'first_name', 'last_name', 'email', 'phone', 'is_active', 'role'
             ]));
 
             if ($request->has('first_name') || $request->has('last_name')) {

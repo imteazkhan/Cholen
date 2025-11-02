@@ -93,13 +93,15 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       this.loading = true
       try {
+        // Call logout API if token exists
         if (this.token) {
           await authAPI.logout()
         }
       } catch (error) {
-        console.error('Logout error:', error)
+        console.error('Logout API error:', error)
+        // Continue with logout even if API call fails
       } finally {
-        // Clear state regardless of API call success
+        // Clear all auth state
         this.user = null
         this.token = null
         this.isAuthenticated = false
@@ -111,9 +113,57 @@ export const useAuthStore = defineStore('auth', {
           this.sessionTimer = null
         }
         
-        // Clear localStorage
-        localStorage.removeItem('user')
-        localStorage.removeItem('auth_token')
+        // Clear all auth-related localStorage items
+        const authKeys = ['user', 'auth_token', 'user_role', 'user_permissions']
+        authKeys.forEach(key => {
+          localStorage.removeItem(key)
+        })
+        
+        // Clear any auth-related sessionStorage
+        if (typeof window !== 'undefined') {
+          const sessionAuthKeys = ['temp_user_data', 'auth_redirect', 'user_session']
+          sessionAuthKeys.forEach(key => {
+            sessionStorage.removeItem(key)
+          })
+        }
+        
+        console.log('✅ User successfully logged out and all auth data cleared')
+      }
+    },
+
+    // Enhanced logout with redirect and refresh
+    async logoutAndRedirect(router = null, showToast = null) {
+      try {
+        // Perform logout
+        await this.logout()
+        
+        // Show success message if toast function provided
+        if (showToast) {
+          showToast('Successfully signed out')
+        }
+        
+        // Redirect to home if router provided
+        if (router) {
+          await router.push('/')
+        } else if (typeof window !== 'undefined') {
+          window.location.href = '/'
+        }
+        
+        // Force page refresh after a short delay
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            window.location.reload()
+          }
+        }, 500)
+        
+      } catch (error) {
+        console.error('Enhanced logout error:', error)
+        
+        // Fallback: force redirect even if logout fails
+        if (typeof window !== 'undefined') {
+          window.location.href = '/'
+          setTimeout(() => window.location.reload(), 500)
+        }
       }
     },
 
@@ -128,9 +178,10 @@ export const useAuthStore = defineStore('auth', {
         }
       } catch (error) {
         console.error('Fetch user error:', error)
-        // If token is invalid, logout
+        // If token is invalid, logout and redirect
         if (error.response?.status === 401) {
-          this.logout()
+          console.log('🔒 Token expired or invalid, logging out...')
+          await this.logoutAndRedirect()
         }
       }
     },
@@ -172,12 +223,14 @@ export const useAuthStore = defineStore('auth', {
         clearTimeout(this.sessionTimer)
       }
       
-      this.sessionTimer = setTimeout(() => {
-        this.logout()
+      this.sessionTimer = setTimeout(async () => {
         // Show session expired message
         if (typeof window !== 'undefined') {
           alert('⏰ Your session has expired. Please log in again.')
         }
+        
+        // Perform logout and redirect
+        await this.logoutAndRedirect()
       }, sessionTimeout)
     },
 

@@ -105,12 +105,30 @@ const showRegisterModal = () => {
   emit('close-navbar')
 }
 
-const handleLogout = () => {
-  authStore.logout()
-  appContext.config.globalProperties.$toast?.success('Successfully signed out')
-  router.push('/')
-  showDropdown.value = false
-  emit('close-navbar')
+const handleLogout = async () => {
+  try {
+    // Close dropdown and navbar
+    showDropdown.value = false
+    emit('close-navbar')
+    
+    // Show signing out message
+    appContext.config.globalProperties.$toast?.info('Signing out...')
+    
+    // Use the enhanced logout with redirect
+    await authStore.logoutAndRedirect(
+      router, 
+      (message) => appContext.config.globalProperties.$toast?.success(message)
+    )
+    
+  } catch (error) {
+    console.error('Logout error:', error)
+    appContext.config.globalProperties.$toast?.error('Error during sign out')
+    
+    // Fallback: force redirect to home
+    router.push('/').then(() => {
+      setTimeout(() => window.location.reload(), 500)
+    })
+  }
 }
 
 // Close dropdown when clicking outside

@@ -127,13 +127,19 @@
             </div>
             
             <div class="mb-3">
-              <label for="regRole" class="form-label">Role</label>
+              <label for="regRole" class="form-label">Join as</label>
               <select class="form-select" id="regRole" v-model="registerForm.role" required>
                 <option value="">Select your role</option>
-                <option value="user">User</option>
-                <option value="driver">Driver</option>
-                <option value="admin">Admin</option>
+                <option value="user">
+                  <i class="bi bi-person"></i> User - Book rides and travel
+                </option>
+                <option value="driver">
+                  <i class="bi bi-car-front"></i> Driver - Provide rides and earn
+                </option>
               </select>
+              <small class="form-text text-muted">
+                Note: Admin access is granted by existing administrators only
+              </small>
             </div>
             
             <!-- Additional fields for drivers -->
@@ -144,21 +150,12 @@
                 class="form-control" 
                 id="regLicense" 
                 v-model="registerForm.driverLicense"
+                placeholder="Enter your valid driver license number"
                 required
               >
-            </div>
-            
-            <!-- Additional fields for admins -->
-            <div v-if="registerForm.role === 'admin'" class="mb-3">
-              <label for="regAdminCode" class="form-label">Admin Access Code</label>
-              <input 
-                type="password" 
-                class="form-control" 
-                id="regAdminCode" 
-                v-model="registerForm.adminCode"
-                placeholder="Enter admin access code"
-                required
-              >
+              <small class="form-text text-muted">
+                Your driver account will be reviewed and approved by our admin team
+              </small>
             </div>
             
             <div class="mb-3">
@@ -227,8 +224,7 @@ const registerForm = ref({
   role: '',
   password: '',
   confirmPassword: '',
-  driverLicense: '',
-  adminCode: ''
+  driverLicense: ''
 })
 
 const passwordsMatch = computed(() => {
@@ -254,8 +250,7 @@ const resetForms = () => {
     role: '',
     password: '',
     confirmPassword: '',
-    driverLicense: '',
-    adminCode: ''
+    driverLicense: ''
   }
 }
 
@@ -316,8 +311,7 @@ const handleRegister = async () => {
       password: registerForm.value.password,
       password_confirmation: registerForm.value.confirmPassword,
       role: registerForm.value.role,
-      driver_license: registerForm.value.role === 'driver' ? registerForm.value.driverLicense : null,
-      admin_code: registerForm.value.role === 'admin' ? registerForm.value.adminCode : null
+      driver_license: registerForm.value.role === 'driver' ? registerForm.value.driverLicense : null
     }
     
     const result = await authStore.register(userData)

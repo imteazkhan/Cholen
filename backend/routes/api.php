@@ -76,6 +76,21 @@ Route::middleware('auth:sanctum')->prefix('rides')->group(function () {
     Route::post('/{ride}/payment', [App\Http\Controllers\Api\RideController::class, 'processPayment']);
 });
 
+// Payment Routes
+Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
+    Route::post('/initialize', [App\Http\Controllers\Api\PaymentController::class, 'initializePayment']);
+    Route::post('/cash', [App\Http\Controllers\Api\PaymentController::class, 'processCashPayment']);
+    Route::get('/status/{transaction_id}', [App\Http\Controllers\Api\PaymentController::class, 'getPaymentStatus']);
+});
+
+// Payment Callback Routes (No auth required for SSLCommerz callbacks)
+Route::prefix('payment')->name('payment.')->group(function () {
+    Route::post('/success', [App\Http\Controllers\Api\PaymentController::class, 'paymentSuccess'])->name('success');
+    Route::post('/fail', [App\Http\Controllers\Api\PaymentController::class, 'paymentFail'])->name('fail');
+    Route::post('/cancel', [App\Http\Controllers\Api\PaymentController::class, 'paymentCancel'])->name('cancel');
+    Route::post('/ipn', [App\Http\Controllers\Api\PaymentController::class, 'paymentIPN'])->name('ipn');
+});
+
 // Legacy Phone-based Authentication (for mobile app)
 Route::get('/login', function () {
     return response()->json(['message' => 'GET login route working']);

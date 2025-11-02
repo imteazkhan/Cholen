@@ -215,11 +215,20 @@
                   <p class="card-subtitle-custom">Track your ride history and current bookings</p>
                 </div>
                 <div class="header-actions">
-                  <button class="btn btn-outline-primary btn-sm" @click="loadUserRides" :disabled="loadingRides">
-                    <span v-if="loadingRides" class="spinner-border spinner-border-sm me-1"></span>
-                    <i v-else class="bi bi-arrow-clockwise me-1"></i>
-                    Refresh
-                  </button>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted">
+                      <i class="bi bi-clock me-1"></i>
+                      Updated {{ formatRelativeTime(lastUpdated.toISOString()) }}
+                      <span v-if="isAutoRefreshing" class="ms-1">
+                        <i class="bi bi-arrow-clockwise spin"></i>
+                      </span>
+                    </small>
+                    <button class="btn btn-outline-primary btn-sm" @click="loadUserRides" :disabled="loadingRides">
+                      <span v-if="loadingRides" class="spinner-border spinner-border-sm me-1"></span>
+                      <i v-else class="bi bi-arrow-clockwise me-1"></i>
+                      Refresh
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -281,9 +290,23 @@
                         <small>{{ ride.driver.name }}</small>
                       </div>
                     </div>
-                    <div class="ride-actions" v-if="canCancelRide(ride)">
-                      <button class="btn btn-outline-danger btn-sm" @click="cancelRide(ride.id)"
-                        :disabled="cancellingRide === ride.id">
+                    <div class="ride-actions">
+                      <!-- Payment button for completed rides -->
+                      <button v-if="ride.status === 'completed' && ride.payment_status !== 'paid'"
+                        class="btn btn-success btn-sm me-2" @click="handlePaymentClick(ride)">
+                        <i class="bi bi-credit-card me-1"></i>
+                        Pay Now
+                      </button>
+
+                      <!-- Payment status for paid rides -->
+                      <span v-else-if="ride.payment_status === 'paid'" class="badge bg-success me-2">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Paid
+                      </span>
+
+                      <!-- Cancel button for non-completed rides -->
+                      <button v-if="canCancelRide(ride)" class="btn btn-outline-danger btn-sm"
+                        @click="cancelRide(ride.id)" :disabled="cancellingRide === ride.id">
                         <span v-if="cancellingRide === ride.id" class="spinner-border spinner-border-sm me-1"></span>
                         <i v-else class="bi bi-x-circle me-1"></i>
                         Cancel Ride
@@ -561,80 +584,6 @@
         </div>
       </div>
 
-            <!-- Payment Modal -->
-      <div v-if="showPaymentModal" class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" @click="closePaymentModal">
-        <div class="modal-dialog modal-dialog-centered" @click.stop>
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Payment for Ride #{{ currentRide?.id }}</h5>
-              <button type="button" class="btn-close" @click="closePaymentModal"></button>
-            </div>
-            <div class="modal-body">
-              <div class="payment-details mb-4">
-                <div class="d-flex justify-content-between mb-2">
-                  <span>Estimated Price:</span>
-                  <strong>BDT {{ currentRide?.estimated_price }}</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                  <span>Distance:</span>
-                  <span>{{ currentRide?.distance_km }} km</span>
-                </div>
-                <div class="d-flex justify-content-between mb-3">
-                  <span>Driver:</span>
-                  <span>{{ currentRide?.driver?.name }}</span>
-                </div>
-                <hr>
-                <div class="d-flex justify-content-between">
-                  <h5>Total Amount:</h5>
-                  <h5 class="text-primary">BDT {{ currentRide?.final_price || currentRide?.estimated_price }}</h5>
-                </div>
-              </div>
-              
-              <div class="payment-methods mb-4">
-                <h6>Payment Method</h6>
-                <div class="form-check mb-2">
-                  <input class="form-check-input" type="radio" name="paymentMethod" id="cashPayment" value="cash" v-model="selectedPaymentMethod">
-                  <label class="form-check-label" for="cashPayment">
-                    <i class="bi bi-cash me-2"></i>Cash Payment
-                  </label>
-                </div>
-                <div class="form-check mb-2">
-                  <input class="form-check-input" type="radio" name="paymentMethod" id="cardPayment" value="card" v-model="selectedPaymentMethod">
-                  <label class="form-check-label" for="cardPayment">
-                    <i class="bi bi-credit-card me-2"></i>Card Payment
-                  </label>
-                </div>
-              </div>
-              
-              <div v-if="selectedPaymentMethod === 'card'" class="card-payment-form mb-4">
-                <div class="mb-3">
-                  <label class="form-label">Card Number</label>
-                  <input type="text" class="form-control" placeholder="1234 5678 9012 3456" v-model="cardDetails.cardNumber">
-                </div>
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label">Expiry Date</label>
-                    <input type="text" class="form-control" placeholder="MM/YY" v-model="cardDetails.expiryDate">
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label">CVV</label>
-                    <input type="text" class="form-control" placeholder="123" v-model="cardDetails.cvv">
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" @click="closePaymentModal">Cancel</button>
-              <button type="button" class="btn btn-primary" @click="processPayment" :disabled="processingPayment">
-                <span v-if="processingPayment" class="spinner-border spinner-border-sm me-2"></span>
-                <span v-if="selectedPaymentMethod === 'cash'">Confirm Cash Payment</span>
-                <span v-else>Pay with Card</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Admin Dashboard Content -->
       <div v-else-if="authStore.isAdmin" class="row g-4">
         <div class="col-12">
@@ -700,14 +649,19 @@
       </div>
     </div>
   </div>
+
+  <!-- Payment Modal -->
+  <PaymentModal :show="showPaymentModal" :ride="currentRide" @close="closePaymentModal"
+    @payment-success="handlePaymentSuccess" @payment-failed="handlePaymentFailed" />
 </template>
 
 <script setup>
-import { ref, computed, onMounted, getCurrentInstance } from 'vue'
+import { ref, computed, onMounted, onUnmounted, getCurrentInstance, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { rideAPI } from '../services/api'
 import MapComponent from '../components/MapComponent.vue'
+import PaymentModal from '../components/PaymentModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -735,13 +689,10 @@ const showAllRides = ref(false)
 // Payment related data
 const showPaymentModal = ref(false)
 const currentRide = ref(null)
-const selectedPaymentMethod = ref('cash')
-const processingPayment = ref(false)
-const cardDetails = ref({
-  cardNumber: '',
-  expiryDate: '',
-  cvv: ''
-})
+
+// Real-time update tracking
+const lastUpdated = ref(new Date())
+const isAutoRefreshing = ref(false)
 
 // Map markers
 const mapMarkers = computed(() => {
@@ -788,6 +739,7 @@ const userStats = computed(() => {
     totalRides: rides.length,
     completedRides: rides.filter(r => r.status === 'completed').length,
     activeRides: rides.filter(r => ['pending', 'accepted', 'driver_arrived', 'in_progress'].includes(r.status)).length,
+    pendingRides: rides.filter(r => r.status === 'pending').length,
     totalSpent: rides.filter(r => r.final_price).reduce((sum, r) => sum + parseFloat(r.final_price), 0).toFixed(0)
   }
 })
@@ -831,36 +783,74 @@ const recentActivity = computed(() => {
 })
 
 // Load user rides
-const loadUserRides = async () => {
+const loadUserRides = async (showLoading = true) => {
   if (!authStore.isUser) return
 
-  loadingRides.value = true
+  if (showLoading) {
+    loadingRides.value = true
+  } else {
+    isAutoRefreshing.value = true
+  }
+
   try {
     const response = await rideAPI.getUserRides()
     if (response.data.success) {
-      userRides.value = response.data.rides
+      const newRides = response.data.rides
+
+      // Check if there are any status changes
+      if (userRides.value.length > 0) {
+        const statusChanges = newRides.filter(newRide => {
+          const oldRide = userRides.value.find(r => r.id === newRide.id)
+          return oldRide && oldRide.status !== newRide.status
+        })
+
+        // Show toast for status changes
+        statusChanges.forEach(ride => {
+          if (ride.status === 'accepted') {
+            appContext.config.globalProperties.$toast?.success(`Your ride to ${ride.dropoff_location} has been accepted by a driver!`)
+          } else if (ride.status === 'driver_arrived') {
+            appContext.config.globalProperties.$toast?.info(`Your driver has arrived at ${ride.pickup_location}`)
+          } else if (ride.status === 'in_progress') {
+            appContext.config.globalProperties.$toast?.info('Your ride has started!')
+          } else if (ride.status === 'completed') {
+            appContext.config.globalProperties.$toast?.success('Your ride has been completed!')
+          }
+        })
+      }
+
+      userRides.value = newRides
+      lastUpdated.value = new Date()
     }
   } catch (error) {
     console.error('Failed to load user rides:', error)
-    appContext.config.globalProperties.$toast?.error('Failed to load your rides')
+    if (showLoading) {
+      appContext.config.globalProperties.$toast?.error('Failed to load your rides')
+    }
   } finally {
     loadingRides.value = false
+    isAutoRefreshing.value = false
   }
 }
 
 // Load driver rides
-const loadDriverRides = async () => {
+const loadDriverRides = async (showLoading = true) => {
   if (!authStore.isDriver) return
 
-  loadingDriverRides.value = true
+  if (showLoading) {
+    loadingDriverRides.value = true
+  }
+
   try {
     const response = await rideAPI.getDriverRides()
     if (response.data.success) {
       driverRides.value = response.data.rides
+      lastUpdated.value = new Date()
     }
   } catch (error) {
     console.error('Failed to load driver rides:', error)
-    appContext.config.globalProperties.$toast?.error('Failed to load your rides')
+    if (showLoading) {
+      appContext.config.globalProperties.$toast?.error('Failed to load your rides')
+    }
   } finally {
     loadingDriverRides.value = false
   }
@@ -897,11 +887,25 @@ const acceptRide = async (rideId) => {
   try {
     const response = await rideAPI.acceptRide(rideId)
     if (response.data.success) {
-      appContext.config.globalProperties.$toast?.success('Ride accepted successfully!')
-      // Refresh driver rides list
-      await loadDriverRides()
-      // Load available rides (this will be empty since driver now has an active ride)
-      await loadAvailableRides()
+      appContext.config.globalProperties.$toast?.success('Ride accepted successfully! User has been notified.')
+
+      // Immediately update the UI by moving the ride from available to driver rides
+      const acceptedRide = availableRides.value.find(ride => ride.id === rideId)
+      if (acceptedRide) {
+        // Remove from available rides
+        availableRides.value = availableRides.value.filter(ride => ride.id !== rideId)
+
+        // Add to driver rides with updated status
+        const updatedRide = {
+          ...acceptedRide,
+          status: 'accepted',
+          accepted_at: new Date().toISOString()
+        }
+        driverRides.value.unshift(updatedRide)
+      }
+
+      // Refresh both lists to ensure data consistency
+      await Promise.all([loadDriverRides(), loadAvailableRides()])
     }
   } catch (error) {
     const message = error.response?.data?.message || 'Failed to accept ride'
@@ -914,9 +918,10 @@ const acceptRide = async (rideId) => {
 // Update ride status
 const updateRideStatus = async (rideId, status, bypassPaymentModal = false) => {
   updatingStatus.value = rideId
-  
-  // If completing a ride, open payment modal instead of directly updating status
-  if (status === 'completed' && !bypassPaymentModal) {
+
+  // If completing a ride as a user (passenger), open payment modal instead of directly updating status
+  // Drivers should be able to complete rides normally
+  if (status === 'completed' && !bypassPaymentModal && authStore.isUser) {
     const ride = [...driverRides.value, ...userRides.value].find(r => r.id === rideId)
     if (ride) {
       openPaymentModal(ride)
@@ -924,7 +929,7 @@ const updateRideStatus = async (rideId, status, bypassPaymentModal = false) => {
       return
     }
   }
-  
+
   try {
     const response = await rideAPI.updateRideStatus(rideId, status)
     if (response.data.success) {
@@ -1006,9 +1011,11 @@ const formatDate = (dateString) => {
 const formatRelativeTime = (dateString) => {
   const now = new Date()
   const date = new Date(dateString)
-  const diffInHours = Math.floor((now - date) / (1000 * 60 * 60))
+  const diffInMinutes = Math.floor((now - date) / (1000 * 60))
+  const diffInHours = Math.floor(diffInMinutes / 60)
 
-  if (diffInHours < 1) return 'Just now'
+  if (diffInMinutes < 1) return 'just now'
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`
   if (diffInHours < 24) return `${diffInHours}h ago`
   const diffInDays = Math.floor(diffInHours / 24)
   if (diffInDays < 7) return `${diffInDays}d ago`
@@ -1121,12 +1128,32 @@ const canCancelRide = (ride) => {
   return ['pending', 'accepted'].includes(ride.status)
 }
 
+// Force immediate refresh for critical updates
+const forceRefresh = async () => {
+  if (authStore.isUser) {
+    await loadUserRides(true)
+  } else if (authStore.isDriver) {
+    await loadDriverRides(true)
+    if (user.value.driver_status === 'approved') {
+      await loadAvailableRides()
+    }
+  }
+}
+
+// Payment methods
 // Payment methods
 const openPaymentModal = (ride) => {
-  currentRide.value = ride
-  selectedPaymentMethod.value = 'cash'
-  cardDetails.value = { cardNumber: '', expiryDate: '', cvv: '' }
-  showPaymentModal.value = true
+  try {
+    currentRide.value = ride
+    showPaymentModal.value = true
+  } catch (error) {
+    console.error('Error opening payment modal:', error)
+    appContext.config.globalProperties.$toast?.error('Failed to open payment modal')
+  }
+}
+
+const handlePaymentClick = (ride) => {
+  openPaymentModal(ride)
 }
 
 const closePaymentModal = () => {
@@ -1134,53 +1161,46 @@ const closePaymentModal = () => {
   currentRide.value = null
 }
 
-const processPayment = async () => {
-  if (!currentRide.value) return
+const handlePaymentSuccess = async (payment) => {
+  appContext.config.globalProperties.$toast?.success('Payment completed successfully!')
 
-  processingPayment.value = true
-  
-  try {
-    // Prepare payment data
-    const paymentData = {
-      payment_method: selectedPaymentMethod.value
+  // Update the ride's payment status in local data
+  const updateRidePaymentStatus = (rides) => {
+    const rideIndex = rides.findIndex(r => r.id === payment.ride_id)
+    if (rideIndex !== -1) {
+      rides[rideIndex].payment_status = 'paid'
+      rides[rideIndex].final_price = payment.amount
     }
-    
-    // Only include card details for card payments
-    if (selectedPaymentMethod.value === 'card') {
-      paymentData.card_number = cardDetails.value.cardNumber
-      paymentData.expiry_date = cardDetails.value.expiryDate
-      paymentData.cvv = cardDetails.value.cvv
-    }
-    
-    // Process payment
-    const paymentResponse = await rideAPI.processPayment(currentRide.value.id, paymentData)
-    
-    if (paymentResponse.data.success) {
-      // Update ride status to completed (bypass payment modal)
-      const statusResponse = await updateRideStatus(currentRide.value.id, 'completed', true)
-      
-      if (statusResponse && statusResponse.data && statusResponse.data.success) {
-        appContext.config.globalProperties.$toast?.success('Payment processed and ride completed successfully!')
-        closePaymentModal()
-        
-        // Refresh rides
-        if (authStore.isDriver) {
-          await loadDriverRides()
-        } else {
-          await loadUserRides()
-        }
-      }
-    }
-  } catch (error) {
-    const message = error.response?.data?.message || 'Failed to process payment'
-    appContext.config.globalProperties.$toast?.error(message)
-  } finally {
-    processingPayment.value = false
   }
+
+  // Update in both user and driver rides
+  updateRidePaymentStatus(userRides.value)
+  updateRidePaymentStatus(driverRides.value)
+
+  // Refresh rides to get updated data
+  if (authStore.isUser) {
+    await loadUserRides()
+  }
+  if (authStore.isDriver) {
+    await loadDriverRides()
+  }
+
+  closePaymentModal()
 }
+
+const handlePaymentFailed = (error) => {
+  console.error('Payment failed:', error)
+  appContext.config.globalProperties.$toast?.error('Payment failed. Please try again.')
+  closePaymentModal()
+}
+
+// Real-time update intervals
+let refreshInterval = null
+let notificationCheckInterval = null
 
 // Load data on mount
 onMounted(() => {
+  // Initial data load
   if (authStore.isUser) {
     loadUserRides()
   } else if (authStore.isDriver) {
@@ -1189,7 +1209,39 @@ onMounted(() => {
       loadAvailableRides()
     }
   }
+
+  // Set up real-time updates for ride status changes
+  refreshInterval = setInterval(() => {
+    if (authStore.isUser) {
+      loadUserRides(false) // Don't show loading spinner for auto-refresh
+    } else if (authStore.isDriver) {
+      loadDriverRides(false)
+      if (user.value.driver_status === 'approved') {
+        loadAvailableRides()
+      }
+    }
+  }, 10000) // Check every 10 seconds for ride updates
+
+  // Set up more frequent polling for users with pending rides
+  notificationCheckInterval = setInterval(() => {
+    // If user has pending rides, check more frequently
+    if (authStore.isUser && userStats.value.pendingRides > 0) {
+      loadUserRides(false) // Refresh rides for users with pending requests
+    }
+  }, 5000) // Check every 5 seconds for pending rides
 })
+
+// Clean up intervals on unmount
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
+  if (notificationCheckInterval) {
+    clearInterval(notificationCheckInterval)
+  }
+})
+
+// Real-time updates are handled by the intervals above
 </script>
 
 <style scoped>
@@ -1689,5 +1741,39 @@ onMounted(() => {
 
 .rides-list::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
+}
+
+/* Spinning animation for auto-refresh indicator */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Header actions styling */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-actions small {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
 }
 </style>

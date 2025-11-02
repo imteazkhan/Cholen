@@ -20,13 +20,9 @@ class AuthController extends Controller
         // Convert empty strings to null for optional fields
         $data = $request->all();
         $data['driver_license'] = $data['driver_license'] ?? null;
-        $data['admin_code'] = $data['admin_code'] ?? null;
         
         if (isset($data['driver_license']) && $data['driver_license'] === '') {
             $data['driver_license'] = null;
-        }
-        if (isset($data['admin_code']) && $data['admin_code'] === '') {
-            $data['admin_code'] = null;
         }
 
         $validator = Validator::make($data, [
@@ -34,14 +30,12 @@ class AuthController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
-            'role' => ['required', Rule::in(['user', 'driver', 'admin'])],
+            'role' => ['required', Rule::in(['user', 'driver'])],
             'driver_license' => 'required_if:role,driver|nullable|string|max:255',
-            'admin_code' => 'required_if:role,admin|nullable|string|max:255',
         ], [
             'driver_license.required_if' => 'The driver license field is required when role is driver.',
             'driver_license.string' => 'The driver license field must be a string.',
-            'admin_code.required_if' => 'The admin code field is required when role is admin.',
-            'admin_code.string' => 'The admin code field must be a string.',
+            'role.in' => 'Invalid role selected. Only user and driver roles are allowed for registration.',
         ]);
 
         if ($validator->fails()) {
@@ -52,12 +46,12 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Validate admin code
-        if ($data['role'] === 'admin' && $data['admin_code'] !== 'admin123') {
+        // Admin role is not allowed for registration
+        if ($data['role'] === 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid admin access code'
-            ], 422);
+                'message' => 'Admin role registration is not allowed. Admin access is granted by existing administrators only.'
+            ], 403);
         }
 
         try {
